@@ -65,4 +65,7 @@ jobs:
           docker tag ${{ env.UPSTREAM_IMAGE }}:${{ env.IMAGE_TAG }} \
             $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${{ github.ref_name }}
           docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${{ github.ref_name }}
-          echo "Pushed $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${{ github.ref_name }}"
+          docker tag ${{ env.UPSTREAM_IMAGE }}:${{ env.IMAGE_TAG }} \
+            $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:latest
+          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:latest
+          echo "Pushed $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${{ github.ref_name }} and :latest"
