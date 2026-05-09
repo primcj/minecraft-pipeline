@@ -1,0 +1,68 @@
+name: Publish Minecraft Image to ECR
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: minecraft-server
+  UPSTREAM_IMAGE: itzg/minecraft-server
+  IMAGE_TAG: java21
+
+jobs:
+  smoke-test-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Pull upstream Minecraft image
+        run: docker pull ${{ env.UPSTREAM_IMAGE }}:${{ env.IMAGE_TAG }}
+
+      - name: Smoke test
+        run: |
+          docker run -d --name mc-test \
+            -e EULA=TRUE \
+            -e MEMORY=1024M \
+            ${{ env.UPSTREAM_IMAGE }}:${{ env.IMAGE_TAG }}
+
+          echo "Waiting for Minecraft to initialize..."
+          for i in $(seq 1 12); do
+            sleep 10
+            echo "--- Check $i/12 ---"
+            docker logs mc-test 2>&1 | tail -5
+            if docker logs mc-test 2>&1 | grep -q "Done"; then
+              echo "Smoke test passed!"
+              docker stop mc-test
+              exit 0
+            fi
+          done
+
+          echo "Smoke test failed — server never printed Done"
+          docker logs mc-test 2>&1
+          docker stop mc-test
+          exit 1
+
+      - name: Tag and push to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker tag ${{ env.UPSTREAM_IMAGE }}:${{ env.IMAGE_TAG }} \
+            $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${{ github.ref_name }}
+          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${{ github.ref_name }}
+          echo "Pushed $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${{ github.ref_name }}"
