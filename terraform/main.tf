@@ -97,19 +97,10 @@ resource "aws_instance" "minecraft" {
   tags = { Name = "minecraft-server" }
 }
 
-# ── S3 Bucket for world backups ───────────────────────────────────────────────
+# ── S3 Bucket (pre-existing, not managed by Terraform) ───────────────────────
 
-resource "aws_s3_bucket" "minecraft_world" {
-  bucket        = var.s3_bucket_name
-  force_destroy = true
-  tags          = { Name = "minecraft-world-backups" }
-}
-
-resource "aws_s3_bucket_versioning" "minecraft_world" {
-  bucket = aws_s3_bucket.minecraft_world.id
-  versioning_configuration {
-    status = "Enabled"
-  }
+data "aws_s3_bucket" "minecraft_world" {
+  bucket = var.s3_bucket_name
 }
 
 # ── ECR Repository ────────────────────────────────────────────────────────────
