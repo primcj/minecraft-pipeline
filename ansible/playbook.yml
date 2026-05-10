@@ -1,0 +1,92 @@
+---
+- name: Configure Minecraft Server
+  hosts: localhost
+  connection: local
+  become: true
+
+  vars:
+    ecr_url: "692321740704.dkr.ecr.us-east-1.amazonaws.com"
+    ecr_repo: "692321740704.dkr.ecr.us-east-1.amazonaws.com/minecraft-server"
+    image_tag: "latest"
+    s3_bucket: "minecraft-world-backups-692321740704"
+    data_dir: "/opt/minecraft/data"
+
+  tasks:
+    - name: Install Docker prerequisites
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+        update_cache: true
+
+    - name: Add Docker GPG key
+      shell: |
+        install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+        chmod a+r /etc/apt/keyrings/docker.asc
+      args:
+        creates: /etc/apt/keyrings/docker.asc
+
+    - name: Add Docker apt repository
+      shell: |
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
+      args:
+        creates: /etc/apt/sources.list.d/docker.list
+
+    - name: Install Docker Engine
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+        update_cache: true
+
+    - name: Ensure Docker is running
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Create Minecraft data directory
+      file:
+        path: "{{ data_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Authenticate Docker to ECR
+      shell: |
+        aws ecr get-login-password --region us-east-1 | \
+        docker login --username AWS --password-stdin {{ ecr_url }}
+      changed_when: true
+
+    - name: Restore world data from S3
+      shell: |
+        aws s3 sync s3://{{ s3_bucket }}/world {{ data_dir }} --region us-east-1
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Pull Minecraft image from ECR
+      shell: |
+        docker pull {{ ecr_repo }}:{{ image_tag }}
+      changed_when: true
+
+    - name: Start Minecraft container
+      shell: |
+        docker stop minecraft 2>/dev/null || true
+        docker rm minecraft 2>/dev/null || true
+        docker run -d \
+          --name minecraft \
+          --restart unless-stopped \
+          -p 25565:25565 \
+          -v {{ data_dir }}:/data \
+          -e EULA=TRUE \
+          -e MEMORY=1536M \
+          -e VERSION=1.20.4 \
+          -e MOTD="Primcj Minecraft Server" \
+          {{ ecr_repo }}:{{ image_tag }}
+      changed_when: true
