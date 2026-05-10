@@ -102,7 +102,10 @@ resource "aws_instance" "minecraft" {
 resource "aws_s3_bucket" "minecraft_world" {
   bucket        = var.s3_bucket_name
   force_destroy = true
-  tags          = { Name = "minecraft-world-backups" }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_s3_bucket_versioning" "minecraft_world" {
