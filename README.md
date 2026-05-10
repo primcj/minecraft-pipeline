@@ -9,6 +9,11 @@ terraform apply
 ```
 
 ```powershell
+git tag v2.0.0
+git push --tags
+```
+
+```powershell
 ssh -i C:\Users\jprim\.ssh\cs312-key.pem ubuntu@<new-ip>
 ```
 
