@@ -9,7 +9,7 @@ terraform apply
 ```
 
 ```powershell
-git tag v2.0.0
+git tag v1.0.5
 git push --tags
 ```
 
