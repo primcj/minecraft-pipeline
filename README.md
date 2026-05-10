@@ -15,7 +15,7 @@ ssh -i C:\Users\jprim\.ssh\cs312-key.pem ubuntu@<new-ip>
 ```bash
 sudo apt update && sudo apt install -y ansible awscli
 mkdir ~/minecraft-ansible && cd ~/minecraft-ansible
-nano playbook.yml
+vim playbook.yml
 ```
 
 ```bash
@@ -23,10 +23,7 @@ ansible-playbook playbook.yml
 ```
 
 ```bash
-sudo usermod -aG docker ubuntu
-newgrp docker
-docker ps
-docker logs minecraft 2>&1 | grep -i "done"
+sudo docker ps
 ```
 
 ---
@@ -47,15 +44,23 @@ https://github.com/primcj/minecraft-pipeline/actions
 
 ---
 
-## Checkpoint 4 — Rebuild Proof
+## Before Checkpoint 4 — Back Up World to S3
+# Still SSH'd into the server from Checkpoint 1
 
 ```bash
 sudo aws s3 sync /opt/minecraft/data s3://minecraft-world-backups-692321740704/world --region us-east-1
 ```
 
+```bash
+aws s3 ls s3://minecraft-world-backups-692321740704/world/world/ --region us-east-1
+```
+
+---
+
+## Checkpoint 4 — Rebuild Proof
+
 ```powershell
 aws ecr batch-delete-image --repository-name minecraft-server --image-ids imageTag=latest
-aws ecr batch-delete-image --repository-name minecraft-server --image-ids imageTag=v1.0.2
 ```
 
 ```powershell
@@ -73,7 +78,7 @@ ssh -i C:\Users\jprim\.ssh\cs312-key.pem ubuntu@<new-ip>
 ```bash
 sudo apt update && sudo apt install -y ansible awscli
 mkdir ~/minecraft-ansible && cd ~/minecraft-ansible
-nano playbook.yml
+vim playbook.yml
 ```
 
 ```bash
@@ -81,10 +86,7 @@ ansible-playbook playbook.yml
 ```
 
 ```bash
-sudo usermod -aG docker ubuntu
-newgrp docker
-docker ps
-docker logs minecraft 2>&1 | grep -i "done"
+sudo docker ps
 ```
 
 ```powershell
