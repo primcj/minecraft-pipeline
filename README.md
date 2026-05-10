@@ -60,8 +60,7 @@ aws s3 ls s3://minecraft-world-backups-692321740704/world/world/ --region us-eas
 ## Checkpoint 4 — Rebuild Proof
 
 ```powershell
-aws ecr batch-delete-image --repository-name minecraft-server --image-ids imageTag=latest
-```
+aws ecr batch-delete-image --repository-name minecraft-server --image-ids imageTag=latest --region us-east-1```
 
 ```powershell
 terraform destroy
