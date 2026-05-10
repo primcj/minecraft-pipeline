@@ -64,7 +64,7 @@ aws ecr batch-delete-image --repository-name minecraft-server --image-ids imageT
 ```
 
 ```powershell
-terraform destroy
+terraform destroy -target=aws_instance.minecraft -target=aws_security_group.minecraft -target=aws_route_table_association.minecraft_public_rta -target=aws_route_table.minecraft_public_rt -target=aws_internet_gateway.minecraft_igw -target=aws_subnet.minecraft_public -target=aws_vpc.minecraft -target=aws_ecr_repository.minecraft
 ```
 
 ```powershell
