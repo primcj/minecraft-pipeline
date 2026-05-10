@@ -75,7 +75,7 @@ terraform apply
 
 # Push new image to ECR
 ```powershell
-git tag v1.0.7
+git tag v1.1.1
 git push --tags
 ```
 
