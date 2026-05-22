@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minecraft
+  namespace: default
+  labels:
+    app: minecraft
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minecraft
+  strategy:
+    type: Recreate          # IMPORTANT: Must be Recreate, not RollingUpdate.
+                            # RollingUpdate would try to spin up a second pod
+                            # before killing the first, but both pods cannot
+                            # mount the same ReadWriteOnce PVC at the same time.
+                            # Recreate kills the old pod first, then starts new.
+  template:
+    metadata:
+      labels:
+        app: minecraft
+    spec:
+      containers:
+        - name: minecraft
+          # Replace YOUR_ACCOUNT_ID and YOUR_REGION with your values.
+          # Replace TAG with your pinned ECR image tag (e.g. v1.0.0, not latest).
+          image: YOUR_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/minecraft-server:TAG
+          ports:
+            - containerPort: 25565
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: minecraft-config
+          resources:
+            requests:
+              memory: "1024Mi"   # Guaranteed memory floor.
+              cpu: "500m"        # 0.5 CPU cores guaranteed.
+            limits:
+              memory: "2048Mi"   # Pod is OOM-killed if it exceeds this.
+              cpu: "1500m"       # 1.5 CPU cores max.
+          volumeMounts:
+            - name: world-data
+              mountPath: /data
+          # startupProbe fires first. It gives Minecraft up to 5*60 = 300
+          # seconds (5 minutes) to fully start before liveness takes over.
+          # This prevents Kubernetes from killing the server during JVM warmup.
+          startupProbe:
+            tcpSocket:
+              port: 25565
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 30
+          # livenessProbe runs after startup succeeds. If 25565 stops
+          # responding for 3 consecutive checks (3*20 = 60 seconds),
+          # Kubernetes restarts the container.
+          livenessProbe:
+            tcpSocket:
+              port: 25565
+            initialDelaySeconds: 0
+            periodSeconds: 20
+            failureThreshold: 3
+          # readinessProbe gates Service traffic. The pod will only receive
+          # player connections once 25565 is accepting TCP connections.
+          readinessProbe:
+            tcpSocket:
+              port: 25565
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            failureThreshold: 3
+      volumes:
+        - name: world-data
+          persistentVolumeClaim:
+            claimName: minecraft-world-pvc
