@@ -21,9 +21,3 @@ variable "minecraft_image_tag" {
   type        = string
   default     = "java21"
 }
-
-variable "s3_bucket_name" {
-  description = "S3 bucket for Minecraft world backups"
-  type        = string
-  default     = "minecraft-world-backups-692321740704"
-}

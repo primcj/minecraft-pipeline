@@ -7,8 +7,3 @@ output "ecr_repository_url" {
   description = "ECR URL — needed for the GitHub Actions pipeline and Ansible"
   value       = aws_ecr_repository.minecraft.repository_url
 }
-
-output "s3_bucket_name" {
-  description = "S3 bucket for world backups"
-  value       = data.aws_s3_bucket.minecraft_world.bucket
-}
